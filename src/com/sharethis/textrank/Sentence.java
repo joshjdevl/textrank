@@ -101,6 +101,30 @@ public class
 
 
     /**
+     * Tokenize the sentence.
+     */
+
+    public String[]
+	tokenize (final LanguageModel lang)
+    {
+	token_list = lang.tokenizeSentence(text);
+
+	return token_list;
+    }
+
+
+    /**
+     * Accessor for token list.
+     */
+
+    public String[]
+	getTokenList ()
+    {
+	return token_list;
+    }
+
+
+    /**
      * Main processing per sentence.
      */
 
@@ -108,8 +132,6 @@ public class
 	mapTokens (final LanguageModel lang, final Graph graph)
 	throws Exception
     {
-	token_list = lang.tokenizeSentence(text);
-
 	// scan each token to determine part-of-speech
 
 	final String[] tag_list = lang.tagTokens(token_list);

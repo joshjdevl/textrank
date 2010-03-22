@@ -101,6 +101,7 @@ public class
 
     protected String text = null;
     protected boolean use_wordnet = false;
+    protected ArrayList<Sentence> s_list = null;
 
     protected Graph graph = null;
     protected Graph ngram_subgraph = null;
@@ -127,16 +128,42 @@ public class
      * Prepare to call algorithm with a new text to analyze.
      */
 
-    public void
-	prepCall (final String text, final boolean use_wordnet)
+    public ArrayList<Sentence>
+	prepCall (final String _text, final boolean _use_wordnet)
 	throws Exception
     {
 	graph = new Graph();
 	ngram_subgraph = null;
 	metric_space = new HashMap<NGram, MetricVector>();
 
-	this.text = text;
-	this.use_wordnet = use_wordnet;
+	this.text = _text;
+	this.use_wordnet = _use_wordnet;
+	this.s_list = new ArrayList<Sentence>();
+
+	//////////////////////////////////////////////////
+	// PASS 1: construct a graph from PoS tags
+
+	initTime();
+
+	// scan sentences to construct a graph of relevent morphemes
+
+	s_list = new ArrayList<Sentence>();
+
+	for (String sent_text : lang.splitParagraph(text)) {
+	    final Sentence s = new Sentence(sent_text.trim());
+	    s.tokenize(lang);
+	    s.mapTokens(lang, graph);
+	    s_list.add(s);
+
+	    if (LOG.isDebugEnabled()) {
+		LOG.debug("s: " + s.text);
+		LOG.debug(s.md5_hash);
+	    }
+	}
+
+	markTime("construct_graph");
+
+	return s_list;
     }
 
 
@@ -150,28 +177,6 @@ public class
 	call ()
 	throws Exception
     {
-	//////////////////////////////////////////////////
-	// PASS 1: construct a graph from PoS tags
-
-	initTime();
-
-	// scan sentences to construct a graph of relevent morphemes
-
-	final ArrayList<Sentence> s_list = new ArrayList<Sentence>();
-
-	for (String sent_text : lang.splitParagraph(text)) {
-	    final Sentence s = new Sentence(sent_text.trim());
-	    s.mapTokens(lang, graph);
-	    s_list.add(s);
-
-	    if (LOG.isDebugEnabled()) {
-		LOG.debug("s: " + s.text);
-		LOG.debug(s.md5_hash);
-	    }
-	}
-
-	markTime("construct_graph");
-
 	//////////////////////////////////////////////////
 	// PASS 2: run TextRank to determine keywords
 
@@ -467,7 +472,7 @@ public class
 	// main entry point for the algorithm
 
 	final TextRank tr = new TextRank(res_path, lang_code);
-	tr.prepCall(text, use_wordnet);
+	final ArrayList<Sentence> s_list = tr.prepCall(text, use_wordnet);
 
 	// wrap the call in a timed task
 
@@ -501,5 +506,15 @@ public class
 	}
 
 	LOG.info("\n" + tr);
+
+	if (LOG.isDebugEnabled()) {
+	    for (Sentence s : s_list) {
+		LOG.debug(s.text);
+
+		for (String token : s.getTokenList()) {
+		    LOG.info(token);
+		}
+	    }
+	}
     }
 }
