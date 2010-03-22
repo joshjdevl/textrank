@@ -128,15 +128,32 @@ public class
      * Prepare to call algorithm with a new text to analyze.
      */
 
-    public ArrayList<Sentence>
+    public Collection<Sentence>
 	prepCall (final String _text, final boolean _use_wordnet)
 	throws Exception
     {
+	final String[] _para = new String[1];
+
+	_para[0] = _text;
+
+	return prepCall(_para, _use_wordnet);
+    }
+
+
+    /**
+     * Prepare to call algorithm with a new text to analyze.
+     */
+
+    public Collection<Sentence>
+	prepCall (final String[] _para, final boolean _use_wordnet)
+	throws Exception
+    {
+	final StringBuilder sb = new StringBuilder();
+
 	graph = new Graph();
 	ngram_subgraph = null;
 	metric_space = new HashMap<NGram, MetricVector>();
 
-	this.text = _text;
 	this.use_wordnet = _use_wordnet;
 	this.s_list = new ArrayList<Sentence>();
 
@@ -149,17 +166,23 @@ public class
 
 	s_list = new ArrayList<Sentence>();
 
-	for (String sent_text : lang.splitParagraph(text)) {
-	    final Sentence s = new Sentence(sent_text.trim());
-	    s.tokenize(lang);
-	    s.mapTokens(lang, graph);
-	    s_list.add(s);
+	for (String para_text : _para) {
+	    if (para_text.trim().length() > 0) {
+		for (String sent_text : lang.splitParagraph(para_text)) {
+		    final Sentence s = new Sentence(sent_text.trim());
+		    s.tokenize(lang);
+		    s.mapTokens(lang, graph);
+		    s_list.add(s);
 
-	    if (LOG.isDebugEnabled()) {
-		LOG.debug("s: " + s.text);
-		LOG.debug(s.md5_hash);
+		    if (LOG.isDebugEnabled()) {
+			LOG.debug("s: " + s.text);
+			LOG.debug(s.md5_hash);
+		    }
+		}
 	    }
 	}
+
+	this.text = sb.toString();
 
 	markTime("construct_graph");
 
@@ -472,7 +495,8 @@ public class
 	// main entry point for the algorithm
 
 	final TextRank tr = new TextRank(res_path, lang_code);
-	final ArrayList<Sentence> s_list = tr.prepCall(text, use_wordnet);
+
+	final Collection<Sentence> s_list = tr.prepCall(text.split("\n"), use_wordnet);
 
 	// wrap the call in a timed task
 
